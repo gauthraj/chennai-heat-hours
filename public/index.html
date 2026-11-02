@@ -1,0 +1,217 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Chennai Heat Hours</title>
+<meta name="description" content="The best hour to run in Chennai today, from the heat and air-quality forecast.">
+<style>
+:root{--bg:#fbf7f1;--card:#fff;--ink:#241a14;--mute:#6b5d52;--line:#e8dfd3;--accent:#c2410c;
+--l0:#2f7d4f;--l1:#b7791f;--l2:#c2410c;--l3:#9b1c1c;--l0b:#e3f2e8;--l1b:#fbefd5;--l2b:#fde5d6;--l3b:#f9dcdc}
+@media (prefers-color-scheme:dark){:root{--bg:#17110d;--card:#221a15;--ink:#f4ebe1;--mute:#b3a496;--line:#3a2e26;--accent:#fb923c;
+--l0:#6ccf94;--l1:#f0c05a;--l2:#fb923c;--l3:#f87171;--l0b:#173323;--l1b:#3a2d12;--l2b:#3d2214;--l3b:#401a1a}}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,"Noto Sans Tamil",sans-serif}
+main{max-width:640px;margin:0 auto;padding:16px max(16px,env(safe-area-inset-right)) 40px max(16px,env(safe-area-inset-left));display:flex;flex-direction:column;gap:14px}
+header{display:flex;justify-content:space-between;align-items:center;gap:10px}
+h1{font-size:1.15rem;margin:0;letter-spacing:.01em}
+h2{font-size:1rem;margin:0 0 6px}
+.sub{color:var(--mute);font-size:.88rem;margin:0}
+button,.btn{font:inherit;cursor:pointer;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--ink);padding:8px 12px;text-decoration:none;display:inline-block}
+button.primary,.btn.primary{background:var(--accent);color:#fff;border-color:transparent;font-weight:600}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px}
+.tabs{display:flex;gap:8px}
+.tabs button[aria-pressed=true]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.hero{border-radius:18px;padding:18px;border:1px solid var(--line)}
+.hero .big{font-size:1.6rem;font-weight:700;line-height:1.2;margin:2px 0 6px}
+.hero.l0{background:var(--l0b)}.hero.l1{background:var(--l1b)}.hero.l2{background:var(--l2b)}.hero.l3{background:var(--l3b)}
+.hero.l0 .big{color:var(--l0)}.hero.l1 .big{color:var(--l1)}.hero.l2 .big{color:var(--l2)}.hero.l3 .big{color:var(--l3)}
+.k{color:var(--mute);font-size:.85rem}
+.win{font-size:1.25rem;font-weight:700;margin:2px 0}
+.avoid{color:var(--l3);font-weight:600}
+.strip{display:grid;grid-template-columns:repeat(auto-fill,minmax(54px,1fr));gap:6px}
+.h{border-radius:10px;padding:6px 4px;text-align:center;font-size:.78rem;border:1px solid transparent}
+.h b{display:block;font-size:.95rem}
+.h.l0{background:var(--l0b);color:var(--l0)}.h.l1{background:var(--l1b);color:var(--l1)}.h.l2{background:var(--l2b);color:var(--l2)}.h.l3{background:var(--l3b);color:var(--l3)}
+.h.now{outline:2px solid var(--ink)}
+.legend{display:flex;flex-wrap:wrap;gap:6px 12px;font-size:.8rem;color:var(--mute);margin-top:10px}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:4px;vertical-align:-1px}
+ul{margin:6px 0 0;padding-left:20px}li{margin:3px 0}
+.fa{border-left:4px solid var(--l3);}
+table{border-collapse:collapse;width:100%;font-size:.9rem}td,th{text-align:left;padding:6px 6px 6px 0;border-bottom:1px solid var(--line);vertical-align:top}
+.err{background:var(--l1b);border-radius:12px;padding:12px;font-size:.92rem}
+footer{color:var(--mute);font-size:.8rem}
+.row{display:flex;gap:8px;flex-wrap:wrap}
+</style>
+</head>
+<body>
+<main>
+<header>
+  <div><h1 data-t="title">Chennai Heat Hours</h1><p class="sub" data-t="tag">When to run today, from the heat and air forecast</p></div>
+  <button id="lang" aria-label="Language">தமிழ்</button>
+</header>
+
+<div class="tabs" id="tabs" hidden>
+  <button id="t0" aria-pressed="true"></button><button id="t1" aria-pressed="false"></button>
+</div>
+
+<div id="loading" class="card" data-t="loading">Fetching the forecast…</div>
+<div id="error" class="err" hidden></div>
+
+<section id="live" hidden class="stack" style="display:flex;flex-direction:column;gap:14px">
+  <div id="hero" class="hero"></div>
+  <div class="card">
+    <h2 data-t="best">Best time to run</h2>
+    <div id="best"></div>
+    <div id="avoid" class="avoid"></div>
+    <div id="sun" class="k"></div>
+  </div>
+  <div class="card">
+    <h2 data-t="hourly">Hour by hour</h2>
+    <div class="strip" id="strip"></div>
+    <div class="legend" id="legend"></div>
+  </div>
+  <div class="card"><h2 data-t="advice">What to do at this level</h2><div id="adv"></div></div>
+  <div class="row"><a id="wa" class="btn primary" target="_blank" rel="noopener" data-t="share">Share on WhatsApp</a></div>
+</section>
+
+<section class="card fa">
+  <h2 data-t="faT">Heat illness: know the signs</h2>
+  <div id="fa"></div>
+</section>
+
+<section class="card">
+  <h2 data-t="seasT">Chennai through the year</h2>
+  <table id="seas"></table>
+  <p class="k" data-t="seasN">General pattern, not a forecast.</p>
+</section>
+
+<footer data-t="foot">Forecast from Open-Meteo (weather and air quality) for central Chennai. Levels use the US heat-index bands applied to the "feels like" temperature and US AQI bands. A guide, not medical advice. Listen to your body.</footer>
+</main>
+
+<script src="heat.js"></script>
+<script>
+(function(){
+var H=window.Heat;
+var T={
+en:{title:"Chennai Heat Hours",tag:"When to run today, from the heat and air forecast",loading:"Fetching the forecast…",
+ best:"Best time to run",hourly:"Hour by hour",advice:"What to do at this level",share:"Share on WhatsApp",
+ faT:"Heat illness: know the signs",seasT:"Chennai through the year",seasN:"General pattern, not a forecast.",
+ foot:"Forecast from Open-Meteo (weather and air quality) for central Chennai. Levels use the US heat-index bands applied to the \"feels like\" temperature and US AQI bands. A guide, not medical advice. Listen to your body.",
+ today:"Today",tomorrow:"Tomorrow",now:"Right now",feels:"feels like",aqi:"air",rain:"rain",
+ lv:["Good to run","Run with care","Hard conditions","Skip or move indoors"],
+ lvs:["Good","Care","Hard","Skip"],
+ bestLine:"Calmest hours",none:"No calm window left today. Try tomorrow's first light.",avoidLine:"Avoid",
+ sunr:"Sunrise",suns:"Sunset",
+ err:"Could not load the forecast. Check your connection and try again. The guide below still works.",
+ adv:[["Normal easy running is fine.","Drink to thirst; carry water for runs over 60 minutes.","Sunscreen and a cap if you run after 8 AM."],
+  ["Slow down 20 to 30 seconds per km. Heat raises effort before it shows on pace.","Sip water every 15 to 20 minutes; add electrolytes for runs over an hour.","Choose shade and loops near water points. Keep the run short and easy."],
+  ["Keep it short and easy, or shift to the calmest hour. This is not the day for a long run or hard session.","Run with a friend and near help. Walk breaks are a good plan.","Wet your cap or neck; stop at the first sign of dizziness, chills or a pounding head."],
+  ["Move the session indoors, or skip it. Strength, mobility or a gym treadmill is a fine swap.","If you must go out, keep it under 30 minutes, slow, in shade, near water.","Beginners and anyone returning from a break should not run outdoors at this level."]],
+ aqNote:"Air quality is the reason for this rating. Prefer a green park, avoid busy roads, and cut the effort.",
+ fa:[["Heat exhaustion","Heavy sweating, dizziness, headache, nausea, cramps, pale clammy skin. Stop. Move to shade, loosen clothing, sip water, cool the neck and armpits with wet cloth. Do not restart the run."],["Heat stroke: an emergency","Confusion, slurred speech, fainting, very hot dry skin, or no sweating. Call 108 or 112 now. Cool the person with water and wet cloths while waiting. Do not give fluids if they are not alert."]],
+ seas:[["Jan–Feb","Coolest and driest. Best months. Dawn is pleasant."],["Mar","Warming up. Start before 6:30 AM."],["Apr–Jun","Hottest. Run in the first hour of light; evenings stay hot. Cut pace and distance."],["Jul–Sep","Hot and humid. Humidity makes it feel worse than the number."],["Oct–Dec","North-east monsoon. Cooler, but rain and flooded roads; check the forecast."]],
+ wa:function(w,b){return "Chennai running forecast: "+w+". "+b+" – chennai heat hours"}},
+ta:{title:"சென்னை வெப்ப நேரம்",tag:"இன்று ஓட சிறந்த நேரம், வெப்பம் மற்றும் காற்று முன்னறிவிப்பின் படி",loading:"முன்னறிவிப்பைப் பெறுகிறது…",
+ best:"ஓட சிறந்த நேரம்",hourly:"மணி வாரியாக",advice:"இந்த நிலையில் என்ன செய்வது",share:"வாட்ஸ்அப்பில் பகிர",
+ faT:"வெப்பத் தாக்கம்: அறிகுறிகளை அறிவோம்",seasT:"ஆண்டு முழுவதும் சென்னை",seasN:"பொதுவான நிலை, முன்னறிவிப்பு அல்ல.",
+ foot:"சென்னை மத்திய பகுதிக்கான முன்னறிவிப்பு Open-Meteo வழங்கியது. அமெரிக்க வெப்பக் குறியீடு மற்றும் AQI அளவுகள் பயன்படுத்தப்பட்டுள்ளன. இது வழிகாட்டி மட்டுமே, மருத்துவ ஆலோசனை அல்ல. உடல் சொல்வதைக் கேளுங்கள்.",
+ today:"இன்று",tomorrow:"நாளை",now:"இப்போது",feels:"உணர்வது",aqi:"காற்று",rain:"மழை",
+ lv:["ஓட நன்றாக உள்ளது","கவனத்துடன் ஓடுங்கள்","கடினமான சூழல்","ஓட வேண்டாம் அல்லது உள்ளரங்கில்"],
+ lvs:["நன்று","கவனம்","கடினம்","வேண்டாம்"],
+ bestLine:"சிறந்த நேரங்கள்",none:"இன்று அமைதியான நேரம் இல்லை. நாளை அதிகாலையை முயலுங்கள்.",avoidLine:"தவிர்க்க",
+ sunr:"சூரிய உதயம்",suns:"சூரிய அஸ்தமனம்",
+ err:"முன்னறிவிப்பைப் பெற முடியவில்லை. இணைப்பைச் சரிபார்த்து மீண்டும் முயலுங்கள். கீழே உள்ள வழிகாட்டி வேலை செய்யும்.",
+ adv:[["சாதாரண மெதுவான ஓட்டம் போதும்.","தாகம் எடுக்கும்போது குடியுங்கள்; 60 நிமிடத்துக்கு மேல் ஓடினால் தண்ணீர் எடுத்துச் செல்லுங்கள்.","காலை 8 மணிக்கு மேல் ஓடினால் சன்ஸ்கிரீன், தொப்பி."],
+  ["ஒரு கிமீக்கு 20–30 விநாடி மெதுவாக ஓடுங்கள். வேகத்தில் தெரியும் முன்பே வெப்பம் உடலுக்கு சுமையாகும்.","15–20 நிமிடத்துக்கு ஒருமுறை தண்ணீர் குடியுங்கள்; ஒரு மணி நேரத்துக்கு மேல் என்றால் எலக்ட்ரோலைட்.","நிழல், தண்ணீர் வசதி உள்ள பாதையைத் தேர்ந்தெடுங்கள். குறுகிய, மெதுவான ஓட்டம்."],
+  ["குறுகிய, மெதுவான ஓட்டம் அல்லது மிகக் குளிர்ந்த மணி நேரத்தில் ஓடுங்கள். நீண்ட ஓட்டம், கடின பயிற்சிக்கு இது நாள் அல்ல.","நண்பருடன், உதவி அருகில் உள்ள இடத்தில் ஓடுங்கள். நடை இடைவெளி நல்லது.","தொப்பி, கழுத்தை ஈரமாக்குங்கள்; தலைச்சுற்றல், குளிர், தலைவலி வந்தால் உடனே நிறுத்துங்கள்."],
+  ["பயிற்சியை உள்ளரங்கில் மாற்றுங்கள் அல்லது தவிர்க்கவும். வலிமை பயிற்சி அல்லது ஜிம் ட்ரெட்மில் சரி.","கண்டிப்பாக செல்ல வேண்டுமெனில் 30 நிமிடத்துக்குள், மெதுவாக, நிழலில், தண்ணீர் அருகில்.","புதியவர்கள், இடைவெளிக்குப் பின் திரும்புவோர் இந்த நிலையில் வெளியே ஓட வேண்டாம்."]],
+ aqNote:"இந்த மதிப்பீட்டுக்கு காற்றின் தரமே காரணம். பசுமையான பூங்காவைத் தேர்ந்தெடுங்கள், பரபரப்பான சாலையைத் தவிர்த்து, முயற்சியைக் குறையுங்கள்.",
+ fa:[["வெப்பச் சோர்வு","அதிக வியர்வை, தலைச்சுற்றல், தலைவலி, குமட்டல், தசைப்பிடிப்பு, வெளிறிய ஈரப்பத தோல். நிறுத்துங்கள். நிழலுக்குச் சென்று, ஆடையைத் தளர்த்தி, தண்ணீர் மிடறு மிடறாகக் குடியுங்கள், கழுத்து மற்றும் அக்குளில் ஈரத்துணி வையுங்கள். ஓட்டத்தை மீண்டும் தொடங்காதீர்கள்."],["வெப்பப் பக்கவாதம்: அவசர நிலை","குழப்பம், தெளிவற்ற பேச்சு, மயக்கம், மிகச் சூடான வறண்ட தோல் அல்லது வியர்வை இல்லாமை. உடனே 108 அல்லது 112 அழைக்கவும். காத்திருக்கும் போது தண்ணீர், ஈரத்துணியால் குளிர்விக்கவும். விழிப்பு இல்லையெனில் குடிக்கக் கொடுக்காதீர்கள்."]],
+ seas:[["ஜன–பிப்","மிகக் குளிர்ச்சி, வறண்ட காலம். சிறந்த மாதங்கள்."],["மார்ச்","வெப்பம் கூடுகிறது. காலை 6:30க்கு முன் தொடங்குங்கள்."],["ஏப்–ஜூன்","மிக வெப்பம். முதல் மணி நேர வெளிச்சத்தில் ஓடுங்கள்; மாலையும் சூடு. வேகம், தூரத்தைக் குறையுங்கள்."],["ஜூலை–செப்","வெப்பம், ஈரப்பதம். எண்ணைவிட அதிகமாக உணரப்படும்."],["அக்–டிச","வடகிழக்கு பருவமழை. குளிர்ச்சி, ஆனால் மழை, வெள்ளம்; முன்னறிவிப்பைப் பாருங்கள்."]],
+ wa:function(w,b){return "சென்னை ஓட்ட முன்னறிவிப்பு: "+w+". "+b+" – chennai heat hours"}}
+};
+var lang="en";try{lang=localStorage.getItem("hh-lang")||"en"}catch(e){}
+var $=function(id){return document.getElementById(id)};
+var data=null,day=0,nowT=null;
+function t(){return T[lang]}
+function hr(h){var s=h%12===0?12:h%12;return s+(h<12||h===24?" AM":" PM")}
+function rng(r){return r.from===r.to?hr(r.from):hr(r.from)+" – "+hr(r.to+1)}
+function el(tag,cls,txt){var e=document.createElement(tag);if(cls)e.className=cls;if(txt!=null)e.textContent=txt;return e}
+function statics(){
+  var s=t();
+  document.documentElement.lang=lang==="ta"?"ta":"en";
+  document.querySelectorAll("[data-t]").forEach(function(n){var v=s[n.getAttribute("data-t")];if(typeof v==="string")n.textContent=v});
+  $("lang").textContent=lang==="en"?"தமிழ்":"English";
+  var fa=$("fa");fa.textContent="";
+  s.fa.forEach(function(x){var d=el("div");d.appendChild(el("b",null,x[0]));d.appendChild(el("p",null,x[1]));fa.appendChild(d)});
+  var tb=$("seas");tb.textContent="";
+  s.seas.forEach(function(r){var tr=el("tr");tr.appendChild(el("th",null,r[0]));tr.appendChild(el("td",null,r[1]));tb.appendChild(tr)});
+  $("t0").textContent=s.today;$("t1").textContent=s.tomorrow;
+  var lg=$("legend");lg.textContent="";
+  for(var i=0;i<4;i++){var sp=el("span");var sw=el("i");sw.style.background="var(--l"+i+")";sp.appendChild(sw);sp.appendChild(document.createTextNode(s.lvs[i]));lg.appendChild(sp)}
+}
+function render(){
+  if(!data)return;
+  var s=t(),date=data.dates[day],hs=data.days[date];
+  var isToday=day===0&&date===nowT.date;
+  var lo=isToday?Math.max(4,nowT.hour):4,hi=21;
+  var cur=isToday?hs[nowT.hour]:null;
+  var focus=cur||hs[6];
+  var hero=$("hero");hero.className="hero l"+focus.level;hero.textContent="";
+  hero.appendChild(el("div","k",isToday?s.now:s.tomorrow+" · "+hr(6)));
+  hero.appendChild(el("div","big",s.lv[focus.level]));
+  var det=Math.round(focus.feels)+"°C "+s.feels+" · "+Math.round(focus.rh==null?focus.rh:focus.rh)+"% RH"+(focus.aqi!=null?" · "+s.aqi+" "+Math.round(focus.aqi):"");
+  hero.appendChild(el("div",null,det));
+  var w=H.windows(hs,Math.max(lo,4),hi);
+  var best=$("best");best.textContent="";
+  var summary;
+  if(!w.runs.length||w.level>=3){best.appendChild(el("div","win",s.none));summary=s.none}
+  else{
+    var parts=w.runs.map(rng);
+    best.appendChild(el("div","win",parts.join("  ·  ")));
+    best.appendChild(el("div","k",s.bestLine+": "+s.lv[w.level]));
+    summary=parts.join(", ")+" ("+s.lvs[w.level]+")";
+  }
+  var av=H.avoid(hs,lo,hi,2),avEl=$("avoid");avEl.textContent="";
+  if(av.length)avEl.textContent=s.avoidLine+": "+av.map(rng).join(", ");
+  var sun=data.sun[date];$("sun").textContent=sun?s.sunr+" "+sun.rise+" · "+s.suns+" "+sun.set:"";
+  var st=$("strip");st.textContent="";
+  for(var h=4;h<=21;h++){var x=hs[h];if(!x)continue;
+    var c=el("div","h l"+x.level+((isToday&&h===nowT.hour)?" now":""));
+    c.appendChild(el("span",null,hr(h)));c.appendChild(el("b",null,Math.round(x.feels)+"°"));
+    c.title=hr(h)+": "+s.lv[x.level]+", "+s.feels+" "+Math.round(x.feels)+"°C"+(x.aqi!=null?", AQI "+Math.round(x.aqi):"");
+    st.appendChild(c)}
+  var adv=$("adv");adv.textContent="";
+  var ul=el("ul");s.adv[focus.level].forEach(function(a){ul.appendChild(el("li",null,a))});adv.appendChild(ul);
+  if(focus.aqiL>focus.heatL)adv.appendChild(el("p","k",s.aqNote));
+  var msg=s.wa((isToday?s.today:s.tomorrow),(w.runs.length&&w.level<3?s.bestLine+": "+summary:summary));
+  $("wa").href="https://wa.me/?text="+encodeURIComponent(msg);
+  $("t0").setAttribute("aria-pressed",day===0);$("t1").setAttribute("aria-pressed",day===1);
+}
+function showError(){ $("loading").hidden=true;var e=$("error");e.hidden=false;e.textContent=t().err }
+function load(){
+  var u=H.urls();
+  var wp=fetch(u.weather).then(function(r){if(!r.ok)throw 0;return r.json()});
+  var ap=fetch(u.air).then(function(r){return r.ok?r.json():null}).catch(function(){return null});
+  Promise.all([wp,ap]).then(function(res){
+    nowT=H.nowIST();
+    data=H.build(res[0],res[1]);
+    if(data.dates.indexOf(nowT.date)<0||!data.days[nowT.date]){throw 0}
+    day=0;
+    // keep the two days starting at today
+    var i=data.dates.indexOf(nowT.date);data.dates=data.dates.slice(i,i+2);
+    $("loading").hidden=true;$("error").hidden=true;$("live").hidden=false;
+    $("tabs").hidden=data.dates.length<2;
+    render();
+  }).catch(showError);
+}
+$("lang").addEventListener("click",function(){lang=lang==="en"?"ta":"en";try{localStorage.setItem("hh-lang",lang)}catch(e){}statics();render();if($("error").hidden===false)$("error").textContent=t().err});
+$("t0").addEventListener("click",function(){day=0;render()});
+$("t1").addEventListener("click",function(){day=1;render()});
+statics();load();
+})();
+</script>
+</body>
+</html>
